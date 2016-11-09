@@ -1,0 +1,32 @@
+body {
+  font-size: 13px;
+  font-family: arial,sans-serif;
+  background-color: #eeeeee;
+  user-select: none;
+  width: 192px;
+  margin: 0;
+}
+ul {
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+}
+li {
+  margin: 0;
+  padding-left: 10px;
+  line-height: 19px;
+  cursor: default;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+li:hover {
+  color: #fff;
+  background-color: #3b90fe;
+}
+li[data-disabled=true] {
+  pointer-events: none;
+  color: #aeadae;
+}
+.spacer {
+  border-bottom: 2px solid #dddddd;
+}

@@ -1,0 +1,49 @@
+{
+  "name": "Tab Suspender (Tab Unloader)",
+  "short_name": "itsuspender",
+  "description": "Automatically suspend (hibernate) inactive tabs to free up system resources",
+  "author": "Richard Neomy",
+  "version": "0.1.0",
+  "manifest_version": 2,
+  "permissions": [
+    "storage",
+    "tabs",
+    "notifications",
+    "contextMenus",
+    "*://*/*"
+  ],
+  "page_action": {
+    "default_icon": {
+      "16": "data/icons/16.png",
+      "32": "data/icons/32.png"
+    },
+    "default_popup": "data/panel/index.html"
+  },
+  "background": {
+    "scripts": [
+      "common.js"
+    ]
+  },
+  "homepage_url": "http://add0n.com/tab-suspender.html",
+  "icons": {
+    "16": "data/icons/16.png",
+    "48": "data/icons/48.png",
+    "128": "data/icons/128.png"
+  },
+"options_ui": {
+    "page": "data/options/index.html",
+    "chrome_style": true
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "js": ["data/change.js"],
+      "match_about_blank": true,
+      "all_frames": true
+    },
+    {
+      "matches": ["*://*/*"],
+      "js": ["data/idle.js"]
+    }
+  ]
+}

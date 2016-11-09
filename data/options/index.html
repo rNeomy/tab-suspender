@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Test Extension Options</title>
+  <style>
+    body {
+      padding: 10px;
+      font-family: arial,sans-serif;
+      font-size: 13px;
+    }
+    label {
+      display: block;
+      padding: 3px 0;
+    }
+    input[type=number] {
+      width: 40px;
+      outline: none;
+    }
+    label p {
+      font-size: 80%;
+      color: #bfbfbf;
+      margin: 5px 10px;
+    }
+    textarea {
+      margin-top: 5px;
+      width: 100%;
+      height: 100px;
+    }
+  </style>
+</head>
+
+<body>
+  <label>
+    Automatically suspend tabs after (in minutes):
+    <input id="timeout" type="number" min="5">
+    <p>Minimum acceptable time is 5 minutes</p>
+  </label>
+  <label>
+    <input id="pinned" type="checkbox">
+    Do not suspend pinned tabs
+  </label>
+  <label>
+    <input id="unsaved" type="checkbox">
+    Do not suspend tabs that contain unsaved form inputs
+  </label>
+  <label>
+    <input id="online" type="checkbox">
+    Only auto-suspend if connected to the internet
+  </label>
+  <label>
+    <input id="battery" type="checkbox">
+    Only auto-suspend if running on battery (if battery API is available)
+  </label>
+  <label>
+    <input id="focus" type="checkbox">
+    Automatically unsuspend when tab gains focus
+  </label>
+  <p>
+    <b>Whitelist:</b> (comma separated list of domains that do not go to hibernate)
+    <textarea id="whitelist"></textarea>
+  </p>
+
+  <p>
+    <button id="save">Save</button><span id="status"></span>
+  </p>
+
+  <script src="index.js"></script>
+</body>
+</html>
