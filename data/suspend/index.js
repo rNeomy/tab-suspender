@@ -18,6 +18,28 @@ document.getElementById('date').textContent = (new Date()).toLocaleString();
 document.title = document.querySelector('h1').textContent = search.title || 'Title';
 document.querySelector('h2').textContent = search.url || '...';
 
+// fav icon
+(function (img) {
+  img.onload = () => {
+    let canvas = document.querySelector('canvas');
+    let ctx = canvas.getContext('2d');
+    canvas.width = img.width;
+    canvas.height = img.height;
+
+    ctx.globalAlpha = 0.4;
+    ctx.drawImage(img, 0 , 0);
+
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.fillStyle = '#6fb9b3';
+    ctx.arc(img.width * 0.75, img.height * 0.75, img.width * 0.25, 0, 2 * Math.PI, false);
+    ctx.fill();
+
+    document.querySelector('link[rel*="icon"]').href = canvas.toDataURL('image/ico');
+  };
+  img.src = 'chrome://favicon/' + search.url;
+})(new Image());
+
 document.addEventListener('dblclick', () => {
   chrome.runtime.sendMessage({
     cmd: 'update-tab',

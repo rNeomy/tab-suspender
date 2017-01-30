@@ -31,6 +31,10 @@ h1,h2 {
   white-space: nowrap;
 }
 
+canvas {
+  display: none;
+}
+
 #info {
   display: flex;
   align-items: flex-end;

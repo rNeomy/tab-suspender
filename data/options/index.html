@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>My Test Extension Options</title>
+  <title>Options</title>
   <style>
     body {
       padding: 10px;
-      font-family: arial,sans-serif;
+      font-family: "Helvetica Neue",Helvetica,sans-serif;
       font-size: 13px;
     }
     label {
@@ -26,15 +26,25 @@
       width: 100%;
       height: 100px;
     }
+    table {
+      width: 100%;
+    }
   </style>
 </head>
 
 <body>
+  Automatically suspend tabs:
+  <table>
+    <tr>
+      <td>after (in minutes)<sup>1</sup>:</td>
+      <td><input id="timeout" type="number" min="5"></td>
+    </tr>
+    <tr>
+      <td>and if number of tabs exceeds<sup>2</sup>:</td>
+      <td><input id="tabs" type="number" min="1"></td>
+    </tr>
+  </table>
   <label>
-    Automatically suspend tabs after (in minutes):
-    <input id="timeout" type="number" min="5">
-    <p>Minimum acceptable time is 5 minutes</p>
-  </label>
   <label>
     <input id="pinned" type="checkbox">
     Do not suspend pinned tabs
@@ -55,6 +65,10 @@
     <input id="focus" type="checkbox">
     Automatically unsuspend when tab gains focus
   </label>
+  <label>
+    <input id="restore" type="checkbox">
+    Automatically restore suspended tabs on restart
+  </label>
   <p>
     <b>Whitelist:</b> (comma separated list of domains that do not go to hibernate)
     <textarea id="whitelist"></textarea>
@@ -62,6 +76,12 @@
 
   <p>
     <button id="save">Save</button><span id="status"></span>
+  </p>
+
+  <p>
+    1: Minimum acceptable time is 1 minute
+    <br>
+    2: Minimum acceptable value is 1 tab
   </p>
 
   <script src="index.js"></script>
