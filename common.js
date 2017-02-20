@@ -47,6 +47,43 @@ chrome.contextMenus.create({
   contexts: ['page_action'],
   onclick: () => app.emit('unsuspend-all')
 });
+chrome.contextMenus.create({
+  title: 'Open tab in suspend mode',
+  contexts: ['link'],
+  onclick: (i) => {
+    let url = i.linkUrl;
+    // bypass Google redirect
+    if (url.startsWith('https://www.google') && url.indexOf('&url=') !== -1) {
+      url = decodeURIComponent(url.split('&url=')[1].split('&')[0]);
+    }
+    chrome.tabs.create({
+      url : './data/suspend/index.html?title=' +
+      encodeURIComponent(url) +
+      '&url=' + encodeURIComponent(url),
+      active: false
+    }, (tab) => {
+      let req = new XMLHttpRequest();
+      req.open('GET', url);
+      req.responseType = 'document';
+      req.onload = () => {
+        let title = req.response.title;
+        if (title) {
+          chrome.tabs.update(tab.id, {
+            url: './data/suspend/index.html?title=' +
+              encodeURIComponent(title) +
+              '&url=' + encodeURIComponent(url)
+          }, () => {
+            // Firefox issue
+            window.setTimeout(app.emit, 500, 'session-restore');
+          });
+        }
+      };
+      req.send();
+      // Firefox issue
+      window.setTimeout(app.emit, 500, 'session-restore');
+    });
+  }
+});
 
 function battery () {
   if ('getBattery' in navigator) {
