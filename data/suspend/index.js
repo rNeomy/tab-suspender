@@ -20,6 +20,9 @@ document.querySelector('h2').textContent = search.url || '...';
 
 // fav icon
 (function (img) {
+  // Source: https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image
+  img.crossOrigin = "anonymous";  // This enables CORS
+
   img.onload = () => {
     let canvas = document.querySelector('canvas');
     let ctx = canvas.getContext('2d');
@@ -35,10 +38,14 @@ document.querySelector('h2').textContent = search.url || '...';
     ctx.arc(img.width * 0.75, img.height * 0.75, img.width * 0.25, 0, 2 * Math.PI, false);
     ctx.fill();
 
-    document.querySelector('link[rel*="icon"]').href = canvas.toDataURL('image/ico');
+    setFavicon(canvas.toDataURL('image/ico'));
   };
-  img.src = 'chrome://favicon/' + search.url;
+  img.src = search.favicon || chrome.extension.getURL('img/default.ico');
 })(new Image());
+
+function setFavicon(favicon) {
+  document.querySelector('link[rel*="icon"]').href = favicon;
+}
 
 document.addEventListener('dblclick', () => {
   chrome.runtime.sendMessage({
