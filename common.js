@@ -313,6 +313,25 @@ chrome.idle.onStateChanged.addListener((state) => {
     })));
   }
 });
+// inject on startup
+if (chrome.app && chrome.app.getDetails) {
+  chrome.tabs.query({
+    url: '*://*/*'
+  }, tabs => {
+    const contentScripts = chrome.app.getDetails().content_scripts;
+    for (let tab of tabs) {
+      chrome.pageAction[tab.url.startsWith('http') || tab.url.startsWith('ftp') ? 'show' : 'hide'](tab.id);
+      //
+      for (let cs of contentScripts) {
+        chrome.tabs.executeScript(tab.id, {
+          file: cs.js[0],
+          runAt: cs.run_at,
+          allFrames: cs.all_frames,
+        });
+      }
+    }
+  });
+}
 
 // FAQs
 chrome.storage.local.get('version', prefs => {
