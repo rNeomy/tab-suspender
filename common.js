@@ -27,6 +27,7 @@ chrome.contextMenus.create({
   contexts: ['page_action'],
   onclick: () => app.emit('unsuspend-tab')
 });
+/*
 chrome.contextMenus.create({
   title: 'Don\'t suspend for now',
   contexts: ['page_action'],
@@ -37,10 +38,16 @@ chrome.contextMenus.create({
   contexts: ['page_action'],
   onclick: () => app.emit('protect-host')
 });
+*/
 chrome.contextMenus.create({
   title: 'Suspend all tabs',
   contexts: ['page_action'],
   onclick: () => app.emit('suspend-all')
+});
+chrome.contextMenus.create({
+  title: 'Unsuspend this window',
+  contexts: ['page_action'],
+  onclick: () => app.emit('unsuspend-window')
 });
 chrome.contextMenus.create({
   title: 'Unsuspend all tabs',
@@ -101,7 +108,7 @@ function suspend (tab, forced) {
     online: false,
     pinned: false,
     unsaved: true,
-    whitelist: [],
+    whitelist: '',
     tabs: 5,
     battery: false,
   }, (prefs) => {
@@ -184,6 +191,16 @@ app.on('suspend-all', () => {
 
 app.on('unsuspend-all', () => {
   chrome.tabs.query({}, tabs => {
+    tabs.forEach(tab => chrome.tabs.sendMessage(tab.id, {
+      cmd: 'unsuspend'
+    }));
+  });
+});
+
+app.on('unsuspend-window', () => {
+  chrome.tabs.query({
+    currentWindow: true
+  }, tabs => {
     tabs.forEach(tab => chrome.tabs.sendMessage(tab.id, {
       cmd: 'unsuspend'
     }));
