@@ -45,17 +45,14 @@ function setFavicon(favicon) {
     setFavicon(canvas.toDataURL('image/ico'));
   };
 
-  if (navigator.userAgent.indexOf("Firefox") !== -1) {
-    img.src = decodeURIComponent(search.favicon) ||
-              chrome.extension.getURL('data/suspend/favicon.png');
-  } else {
-    img.src = 'chrome://favicon/' + decodeURIComponent(search.url) ||
-              chrome.extension.getURL('data/suspend/favicon.png');
-  }
-
+  img.src = search.favicon ? decodeURIComponent(search.favicon) :
+    (navigator.userAgent.indexOf('Firefox') === -1 ?
+      'chrome://favicon/' + decodeURIComponent(search.url) :
+      chrome.extension.getURL('data/suspend/favicon.png')
+    );
 })(new Image());
 
-document.addEventListener('dblclick', () => {
+document.addEventListener('click', () => {
   chrome.runtime.sendMessage({
     cmd: 'update-tab',
     url: search.url
