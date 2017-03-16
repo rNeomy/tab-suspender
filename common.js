@@ -131,7 +131,8 @@ function suspend (tab, forced) {
 
         let url = './data/suspend/index.html?title=' +
           encodeURIComponent(tab.title) +
-          '&url=' + encodeURIComponent(tab.url);
+          '&url=' + encodeURIComponent(tab.url) +
+          '&favicon=' + encodeURIComponent(tab.favIconUrl);
 
         chrome.tabs.update(tab.id, {
           url
