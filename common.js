@@ -333,6 +333,13 @@ if (chrome.app && chrome.app.getDetails) {
   });
 }
 
+// Keyboard shortcuts
+chrome.commands.onCommand.addListener(function(command) {
+  if (command === 'suspend-tab' || command == 'unsuspend-tab') {
+    app.emit(command);
+  }
+});
+
 // FAQs
 chrome.storage.local.get('version', prefs => {
   let version = chrome.runtime.getManifest().version;
