@@ -11,7 +11,9 @@ function restore () {
     online: false,
     battery: false,
     focus: false,
-    restore: navigator.userAgent.indexOf('Chrome') !== -1 && navigator.userAgent.indexOf('OPR') === -1,
+    dark: false,
+    google: true,
+    audio: true,
     whitelist: ''
   }, (prefs) => {
     Object.keys(prefs).forEach (name => {
@@ -29,7 +31,9 @@ function save () {
     online: document.getElementById('online').checked,
     battery: document.getElementById('battery').checked,
     focus: document.getElementById('focus').checked,
-    restore: document.getElementById('restore').checked,
+    dark: document.getElementById('dark').checked,
+    google: document.getElementById('google').checked,
+    audio: document.getElementById('audio').checked,
     whitelist: document.getElementById('whitelist').value
       .split(',')
       .map(s => s.trim())
@@ -37,7 +41,7 @@ function save () {
       .filter((h, i, l) => l.indexOf(h) === i)
       .join(', ')
   };
-
+  localStorage.setItem('dark', prefs.dark);
   chrome.storage.local.set(prefs, () => {
     log.textContent = 'Options saved.';
     setTimeout(() => log.textContent = '', 750);

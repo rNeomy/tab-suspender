@@ -13,7 +13,10 @@ body {
   flex-direction: column;
   align-items: center;
 }
-
+body[data-mode=dark] {
+  background: #424242 url('background-dark.svg') center center no-repeat;
+  color: #888;
+}
 h1 {
   margin: 0;
   padding: 15px;

@@ -3,6 +3,15 @@
 var app = {};
 var unsaved = {};
 
+function notify (message) {
+  chrome.notifications.create({
+    title: 'Tab Suspender',
+    type: 'basic',
+    iconUrl: 'data/icons/48.png',
+    message
+  });
+}
+
 function tooltip (tab, title) {
   chrome.pageAction.setTitle({
     tabId: tab.id,
@@ -17,9 +26,19 @@ app.on = (id, callback) => {
 };
 app.emit = (id, data) => (app.callbacks[id] || []).forEach(c => c(data));
 
+// commands
+chrome.commands.onCommand.addListener(command => {
+  app.emit(command);
+});
+// contextMenu
 chrome.contextMenus.create({
   title: 'Suspend this tab',
   contexts: ['page_action'],
+  onclick: () => app.emit('suspend-tab')
+});
+chrome.contextMenus.create({
+  title: 'Suspend this tab',
+  contexts: ['page'],
   onclick: () => app.emit('suspend-tab')
 });
 chrome.contextMenus.create({
@@ -73,16 +92,13 @@ chrome.contextMenus.create({
       req.open('GET', url);
       req.responseType = 'document';
       req.onload = () => {
-        let title = req.response.title;
+        const title = req.response.title;
         if (title) {
-          chrome.tabs.update(tab.id, {
-            url: './data/suspend/index.html?title=' +
-              encodeURIComponent(title) +
-              '&url=' + encodeURIComponent(url)
-          }, () => {
-            // Firefox issue
-            window.setTimeout(app.emit, 500, 'session-restore');
+          chrome.tabs.sendMessage(tab.id, {
+            cmd: 'change-title',
+            title
           });
+          window.setTimeout(app.emit, 500, 'session-restore');
         }
       };
       req.send();
@@ -107,6 +123,7 @@ function suspend (tab, forced) {
   chrome.storage.local.get({
     online: false,
     pinned: false,
+    audio: true,
     unsaved: true,
     whitelist: '',
     tabs: 5,
@@ -117,6 +134,9 @@ function suspend (tab, forced) {
     }
     if (!forced && prefs.pinned && tab.pinned) {
       return tooltip(tab, 'Skipped: this tab is pinned');
+    }
+    if (!forced && prefs.audio && tab.audible) {
+      return tooltip(tab, 'Skipped: this tab is playing audio');
     }
     if (!forced && prefs.unsaved && unsaved[tab.id] && Object.values(unsaved[tab.id]).reduce((p, c) => p || c, false)) {
       return tooltip(tab, 'Skipped: this tab has unsaved form data');
@@ -250,9 +270,11 @@ app.on('session-restore', () => {
     // firefox issue
     // url: chrome.runtime.getURL('data/suspend/index.html') + '?*'
   }, tabs => {
-    let root = chrome.runtime.getURL('data/suspend/index.html');
-    let sessions = tabs.filter(t => t.url.startsWith(root)).map(tab => tab.url);
-    chrome.storage.local.set({sessions});
+    const root = chrome.runtime.getURL('data/suspend/index.html');
+    const sessions = tabs.filter(t => t.url.startsWith(root)).map(tab => tab.url);
+    if (chrome.extension.inIncognitoContext === false) {
+      chrome.storage.local.set({sessions});
+    }
   });
 });
 
@@ -285,19 +307,21 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   app.emit('session-restore');
 });
 // session restore
-var restore = [];
-chrome.storage.local.get({
-  sessions: [],
-  restore: navigator.userAgent.indexOf('Chrome') !== -1 && navigator.userAgent.indexOf('OPR') === -1
-}, prefs => {
-  restore = prefs.sessions;
-  if (restore.length && prefs.restore) {
-    restore.forEach(url => chrome.tabs.create({
-      url,
-      active: false
-    }));
-  }
-});
+if (chrome.extension.inIncognitoContext === false) {
+  window.setTimeout(() => {
+    chrome.storage.local.get({
+      sessions: []
+    }, prefs => {
+      chrome.tabs.query({}, tabs => {
+        const urls = tabs.map(tab => tab.url);
+        prefs.sessions.filter(url => urls.indexOf(url) === -1).forEach(url => chrome.tabs.create({
+          url,
+          active: false
+        }));
+      });
+    });
+  }, 2000);
+}
 
 // pageAction
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {

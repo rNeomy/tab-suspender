@@ -1,10 +1,11 @@
 {
-  "name": "Tab Suspender (Tab Unloader)",
+  "name": "Tab Suspender (memory saver)",
   "short_name": "itsuspender",
   "description": "Automatically suspend (hibernate) inactive tabs to free up system resources",
   "author": "Richard Neomy",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "manifest_version": 2,
+  "incognito": "split",
   "permissions": [
     "storage",
     "tabs",
@@ -12,7 +13,8 @@
     "notifications",
     "contextMenus",
     "*://*/*",
-    "chrome://favicon/*"
+    "chrome://favicon/*",
+    "bookmarks"
   ],
   "page_action": {
     "default_icon": {
@@ -47,5 +49,27 @@
       "matches": ["*://*/*"],
       "js": ["data/idle.js"]
     }
-  ]
+  ],
+  "commands": {
+    "suspend-tab": {
+      "description": "Suspend this tab"
+    },
+    "unsuspend-tab": {
+      "description": "Unuspend this tab"
+    },
+    "suspend-all": {
+      "description": "Suspend all tabs"
+    },
+    "unsuspend-all": {
+      "description": "Unsuspend all tabs"
+    },
+    "unsuspend-window": {
+      "description": "Unsuspend this window"
+    }
+  },
+  "applications": {
+    "gecko": {
+      "id": "{e225ac78-5e83-484b-a16b-b6ed0924212f}"
+    }
+  }
 }

@@ -45,13 +45,16 @@
     </tr>
   </table>
   <label>
-  <label>
     <input id="pinned" type="checkbox">
     Do not suspend pinned tabs
   </label>
   <label>
     <input id="unsaved" type="checkbox">
     Do not suspend tabs that contain unsaved form inputs
+  </label>
+  <label>
+    <input id="audio" type="checkbox">
+    Do not suspend tabs that are playing audio
   </label>
   <label>
     <input id="online" type="checkbox">
@@ -66,8 +69,12 @@
     Automatically unsuspend when tab gains focus
   </label>
   <label>
-    <input id="restore" type="checkbox">
-    Automatically restore suspended tabs on restart
+    <input id="google" type="checkbox">
+    Use Google's online favicon resolving server to display favicons
+  </label>
+  <label>
+    <input id="dark" type="checkbox">
+    Use dark theme
   </label>
   <p>
     <b>Whitelist:</b> (comma separated list of domains that do not go to hibernate)

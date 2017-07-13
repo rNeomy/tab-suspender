@@ -1,5 +1,12 @@
 'use strict';
 
+document.body.dataset.mode = localStorage.getItem('dark') === 'true' ? 'dark' : 'white';
+chrome.storage.onChanged.addListener(prefs => {
+  if (prefs.dark) {
+    document.body.dataset.mode = localStorage.getItem('dark') === 'true' ? 'dark' : 'white';
+  }
+});
+
 var search = {};
 try {
   search = document.location.search
@@ -25,11 +32,11 @@ function setFavicon(favicon) {
 // fav icon
 (function (img) {
   // Source: https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image
-  img.crossOrigin = "anonymous";  // This enables CORS
+  img.crossOrigin = 'anonymous';  // This enables CORS
 
   img.onload = () => {
-    let canvas = document.querySelector('canvas');
-    let ctx = canvas.getContext('2d');
+    const canvas = document.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
     canvas.width = img.width;
     canvas.height = img.height;
 
@@ -41,22 +48,39 @@ function setFavicon(favicon) {
     ctx.fillStyle = '#6fb9b3';
     ctx.arc(img.width * 0.75, img.height * 0.75, img.width * 0.25, 0, 2 * Math.PI, false);
     ctx.fill();
-
     setFavicon(canvas.toDataURL('image/ico'));
   };
-
-  img.src = search.favicon ? decodeURIComponent(search.favicon) :
-    (navigator.userAgent.indexOf('Firefox') === -1 ?
-      'chrome://favicon/' + decodeURIComponent(search.url) :
-      chrome.extension.getURL('data/suspend/favicon.png')
-    );
+  img.onerror = e => console.log(e);
+  if (search.favicon && search.favicon !== 'undefined') {
+    img.src = decodeURIComponent(search.favicon);
+  }
+  else {
+    chrome.storage.local.get({
+      google: true
+    }, prefs => {
+      const url = decodeURIComponent(search.url);
+      if (prefs.google && url) {
+        img.src = 'https://www.google.com/s2/favicons?domain=' + (new URL(url)).hostname;
+      }
+      else {
+        img.src = navigator.userAgent.indexOf('Firefox') === -1 ?
+          'chrome://favicon/' + url :
+          chrome.extension.getURL('data/suspend/favicon.png');
+      }
+    });
+  }
 })(new Image());
 
 document.addEventListener('click', () => {
-  chrome.runtime.sendMessage({
-    cmd: 'update-tab',
-    url: search.url
-  });
+  if (history.length > 2) {
+    history.back();
+  }
+  else {
+    chrome.runtime.sendMessage({
+      cmd: 'update-tab',
+      url: search.url
+    });
+  }
 });
 // reload on activate
 document.addEventListener('visibilitychange', () => {
@@ -80,5 +104,13 @@ chrome.runtime.onMessage.addListener((request) => {
       cmd: 'update-tab',
       url: search.url
     });
+  }
+  else if (request.cmd === 'change-title') {
+    document.title = request.title;
+    document.querySelector('h1').textContent = request.title;
+    const params = Object.entries(Object.assign(search, {
+      title: request.title
+    })).map(([key, value]) => key + '=' + value).join('&')
+    window.history.pushState('', '', '/index.html?' + params);
   }
 });
