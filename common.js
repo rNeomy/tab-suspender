@@ -357,6 +357,17 @@ if (chrome.app && chrome.app.getDetails) {
   });
 }
 
+// Fixing bookmarks when a suspended tab gets bookmarked
+chrome.bookmarks.onCreated.addListener((id, bookmark) => {
+  let url = bookmark.url;
+  if (url && url.startsWith(chrome.runtime.getURL(''))) {
+    url = decodeURIComponent(url.split('url=')[1].split('&')[0]);
+    window.setTimeout(() => {
+      chrome.bookmarks.update(id, {url}, () => notify('Suspended URL is cleaned up!'));
+    }, 3000);
+  }
+});
+
 // FAQs
 chrome.storage.local.get('version', prefs => {
   let version = chrome.runtime.getManifest().version;
