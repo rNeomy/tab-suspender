@@ -30,7 +30,7 @@ function setFavicon(favicon) {
 }
 
 // fav icon
-(function (img) {
+(function(img) {
   // Source: https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image
   img.crossOrigin = 'anonymous';  // This enables CORS
 
@@ -41,7 +41,7 @@ function setFavicon(favicon) {
     canvas.height = img.height;
 
     ctx.globalAlpha = 0.4;
-    ctx.drawImage(img, 0 , 0);
+    ctx.drawImage(img, 0, 0);
 
     ctx.globalAlpha = 1;
     ctx.beginPath();

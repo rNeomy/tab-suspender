@@ -4,6 +4,31 @@ var app = {};
 var unsaved = {};
 var sessions = [];
 
+var prefs = {
+  pageAction: true,
+  page: true,
+  version: '',
+  width: 700,
+  height: 500,
+  left: null,
+  top: null,
+  sessions: [],
+  online: false,
+  pinned: false,
+  audio: true,
+  unsaved: true,
+  whitelist: '',
+  tabs: 5,
+  battery: false,
+};
+chrome.storage.local.get(prefs, ps => {
+  Object.assign(prefs, ps);
+  app.emit('prefs-ready');
+});
+chrome.storage.onChanged.addListener(ps => {
+  Object.keys(ps).forEach(key => prefs[key] = ps[key].newValue);
+});
+
 const isFirefox = navigator.userAgent.indexOf('Firefox') !== -1;
 const contexts = ['page_action'];
 if (isFirefox) {
@@ -20,10 +45,12 @@ function notify(message) {
 }
 
 function tooltip(tab, title) {
-  chrome.pageAction.setTitle({
-    tabId: tab.id,
-    title: 'Tab Suspender (Tab Unloader)\n\n' + title
-  });
+  if (prefs.pageAction) {
+    chrome.pageAction.setTitle({
+      tabId: tab.id,
+      title: 'Tab Suspender (Tab Unloader)\n\n' + title
+    });
+  }
 }
 
 app.callbacks = {};
@@ -43,10 +70,14 @@ chrome.contextMenus.create({
   contexts,
   onclick: (info, tab) => app.emit('suspend-tab', [tab])
 });
-chrome.contextMenus.create({
-  title: 'Suspend this tab',
-  contexts: ['page'],
-  onclick: (info, tab) => app.emit('suspend-tab', [tab])
+app.on('prefs-ready', () => {
+  if (prefs.page) {
+    chrome.contextMenus.create({
+      title: 'Suspend this tab',
+      contexts: ['page'],
+      onclick: (info, tab) => app.emit('suspend-tab', [tab])
+    });
+  }
 });
 chrome.contextMenus.create({
   title: 'Unuspend this tab',
@@ -127,54 +158,43 @@ function battery() {
 }
 
 function suspend(tab, forced) {
-  console.log(tab)
-  chrome.storage.local.get({
-    online: false,
-    pinned: false,
-    audio: true,
-    unsaved: true,
-    whitelist: '',
-    tabs: 5,
-    battery: false,
-  }, prefs => {
-    if (!forced && prefs.online && !navigator.onLine) {
-      return tooltip(tab, 'Skipped: browser is not connected to internet');
+  if (!forced && prefs.online && !navigator.onLine) {
+    return tooltip(tab, 'Skipped: browser is not connected to internet');
+  }
+  if (!forced && prefs.pinned && tab.pinned) {
+    return tooltip(tab, 'Skipped: this tab is pinned');
+  }
+  if (!forced && prefs.audio && tab.audible) {
+    return tooltip(tab, 'Skipped: this tab is playing audio');
+  }
+  if (!forced && prefs.unsaved && unsaved[tab.id] && Object.values(unsaved[tab.id]).reduce((p, c) => p || c, false)) {
+    return tooltip(tab, 'Skipped: this tab has unsaved form data');
+  }
+  const hostname = (new URL(tab.url)).hostname;
+  if (!forced && prefs.whitelist.split(', ').filter(u => u === hostname).length) {
+    return tooltip(tab, 'Skipped: tab is in the white-list');
+  }
+  chrome.tabs.query({}, tabs => {
+    // ignore suspended tabs
+    tabs = tabs.filter(t => !t.url.startsWith(chrome.runtime.getURL('data/suspend/index.html')));
+    if (!forced && tabs.length <= prefs.tabs) {
+      return tooltip(tab, 'Skipped: not too many unsuspended tabs');
     }
-    if (!forced && prefs.pinned && tab.pinned) {
-      return tooltip(tab, 'Skipped: this tab is pinned');
-    }
-    if (!forced && prefs.audio && tab.audible) {
-      return tooltip(tab, 'Skipped: this tab is playing audio');
-    }
-    if (!forced && prefs.unsaved && unsaved[tab.id] && Object.values(unsaved[tab.id]).reduce((p, c) => p || c, false)) {
-      return tooltip(tab, 'Skipped: this tab has unsaved form data');
-    }
-    const hostname = (new URL(tab.url)).hostname;
-    if (!forced && prefs.whitelist.split(', ').filter(u => u === hostname).length) {
-      return tooltip(tab, 'Skipped: tab is in the white-list');
-    }
-    chrome.tabs.query({}, tabs => {
-      // ignore suspended tabs
-      tabs = tabs.filter(t => !t.url.startsWith(chrome.runtime.getURL('data/suspend/index.html')));
-      if (!forced && tabs.length <= prefs.tabs) {
-        return tooltip(tab, 'Skipped: not too many unsuspended tabs');
+    battery().then(batt => {
+      if (!forced && prefs.battery && !batt) {
+        return tooltip(tab, 'Skipped: device is connected to power');
       }
-      battery().then(batt => {
-        if (!forced && prefs.battery && !batt) {
-          return tooltip(tab, 'Skipped: device is connected to power');
-        }
 
-        const url = './data/suspend/index.html?title=' +
-          encodeURIComponent(tab.title) +
-          '&url=' + encodeURIComponent(tab.url) +
-          '&favicon=' + encodeURIComponent(tab.favIconUrl);
+      const url = './data/suspend/index.html?title=' +
+        encodeURIComponent(tab.title) +
+        '&url=' + encodeURIComponent(tab.url) +
+        '&favicon=' + encodeURIComponent(tab.favIconUrl);
 
-        chrome.tabs.update(tab.id, {
-          url
-        }, () => {
-          // Firefox issue
-          window.setTimeout(app.emit, 500, 'session-restore');
-        });
+      chrome.tabs.update(tab.id, {
+        url
+      }, () => {
+        // Firefox issue
+        window.setTimeout(app.emit, 500, 'session-restore');
       });
     });
   });
@@ -268,14 +288,10 @@ app.on('protect-host', () => {
   }, tabs => {
     tabs.forEach(tab => {
       const url = new URL(tab.url);
-      chrome.storage.local.get({
-        whitelist: ''
-      }, prefs => {
-        let whitelist = prefs.whitelist.split(', ');
-        whitelist.push(url.hostname);
-        whitelist = whitelist.filter((n, i, l) => n && l.indexOf(n) === i).join(', ');
-        chrome.storage.local.set({whitelist});
-      });
+      let whitelist = prefs.whitelist.split(', ');
+      whitelist.push(url.hostname);
+      whitelist = whitelist.filter((n, i, l) => n && l.indexOf(n) === i).join(', ');
+      chrome.storage.local.set({whitelist});
     });
   });
 });
@@ -335,44 +351,33 @@ chrome.tabs.onRemoved.addListener(tabId => {
 // session restore
 if (chrome.extension.inIncognitoContext === false) {
   window.setTimeout(() => {
-    chrome.storage.local.get({
-      sessions: []
-    }, prefs => {
-      chrome.tabs.query({}, tabs => {
-        const urls = tabs.map(tab => tab.url);
-        sessions = prefs.sessions.map(s => {
-          if (typeof s === 'string') {
-            return {
-              url: s
-            };
-          }
-          return s;
-        }).filter(o => urls.indexOf(o.url) === -1);
-        if (sessions.length) {
-          chrome.storage.local.get({
-            width: 700,
-            height: 500,
-            left: Math.round((screen.availWidth - 700) / 2),
-            top: Math.round((screen.availHeight - 500) / 2),
-          }, prefs => {
-            chrome.windows.create({
-              url: chrome.extension.getURL('data/restore/index.html'),
-              width: prefs.width,
-              height: prefs.height,
-              left: prefs.left,
-              top: prefs.top,
-              type: 'popup'
-            });
-          });
+    chrome.tabs.query({}, tabs => {
+      const urls = tabs.map(tab => tab.url);
+      sessions = prefs.sessions.map(s => {
+        if (typeof s === 'string') {
+          return {
+            url: s
+          };
         }
-      });
+        return s;
+      }).filter(o => urls.indexOf(o.url) === -1);
+      if (sessions.length) {
+        chrome.windows.create({
+          url: chrome.extension.getURL('data/restore/index.html'),
+          width: prefs.width,
+          height: prefs.height,
+          left: prefs.left || Math.round((screen.availWidth - 700) / 2),
+          top: prefs.top || Math.round((screen.availHeight - 500) / 2),
+          type: 'popup'
+        });
+      }
     });
   }, 500);
 }
 
 // pageAction
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  chrome.pageAction[tab.url.startsWith('http') || tab.url.startsWith('ftp') ? 'show' : 'hide'](tabId);
+  chrome.pageAction[prefs.pageAction && tab.url.startsWith('http') || tab.url.startsWith('ftp') ? 'show' : 'hide'](tabId);
 });
 
 // idle
@@ -391,7 +396,7 @@ if (chrome.app && chrome.app.getDetails) {
   }, tabs => {
     const contentScripts = chrome.app.getDetails().content_scripts;
     for (const tab of tabs) {
-      chrome.pageAction[tab.url.startsWith('http') || tab.url.startsWith('ftp') ? 'show' : 'hide'](tab.id);
+      chrome.pageAction[prefs.pageAction && tab.url.startsWith('http') || tab.url.startsWith('ftp') ? 'show' : 'hide'](tab.id);
       //
       for (const cs of contentScripts) {
         chrome.tabs.executeScript(tab.id, {
@@ -415,8 +420,8 @@ chrome.bookmarks.onCreated.addListener((id, bookmark) => {
   }
 });
 
-// FAQs
-chrome.storage.local.get('version', prefs => {
+// FAQs && Bu Reposts
+app.on('prefs-ready', () => {
   const version = chrome.runtime.getManifest().version;
   if (isFirefox ? !prefs.version : prefs.version !== version) {
     window.setTimeout(() => {
@@ -429,7 +434,7 @@ chrome.storage.local.get('version', prefs => {
     }, 3000);
   }
 });
-(function() {
+{
   const {name, version} = chrome.runtime.getManifest();
   chrome.runtime.setUninstallURL('http://add0n.com/feedback.html?name=' + name + '&version=' + version);
-})();
+}
