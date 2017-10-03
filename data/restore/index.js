@@ -23,7 +23,8 @@ chrome.runtime.sendMessage({
       Object.assign(node.querySelector('tr').dataset, {
         id: s.id,
         win: id,
-        url: s.url
+        url: s.url,
+        pinned: s.pinned || false
       });
       parent.querySelector('tbody').appendChild(node);
     });
@@ -59,7 +60,8 @@ document.addEventListener('click', ({target}) => {
         });
       }))).then(() => sessions.forEach(s => chrome.tabs.create({
         url: s.url,
-        windowId: map[s.win]
+        windowId: map[s.win],
+        pinned: Boolean(s.pinned)
       })));
   }
 });

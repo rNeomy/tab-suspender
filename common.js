@@ -293,7 +293,8 @@ app.on('session-restore', () => {
           tab: t.id,
           win: t.windowId,
           title: t.title,
-          url: t.url
+          url: t.url,
+          pinned: t.pinned
         }))
       });
     }
