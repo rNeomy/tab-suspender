@@ -3,9 +3,8 @@
   "short_name": "itsuspender",
   "description": "Automatically suspend (hibernate) inactive tabs to free up system resources",
   "author": "Richard Neomy",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "manifest_version": 2,
-  "incognito": "split",
   "permissions": [
     "storage",
     "tabs",
@@ -13,7 +12,6 @@
     "notifications",
     "contextMenus",
     "*://*/*",
-    "chrome://favicon/*",
     "bookmarks"
   ],
   "page_action": {

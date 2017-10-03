@@ -1,0 +1,43 @@
+html {
+  height: 100%;
+}
+body {
+  height: 100%;
+  margin: 0;
+  padding: 10px;
+  box-sizing: border-box;
+  font-family: "Helvetica Neue",Helvetica,sans-serif;
+  font-size: 13px;
+}
+table {
+  table-layout: fixed;
+}
+table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+table tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+summary {
+  outline: none;
+  user-select: none;
+}
+
+[vbox] {
+  display: flex;
+  flex-direction: column;
+}
+[flex="1"] {
+  flex: 1;
+  overflow: auto;
+}
+
+.note {
+  background-color: #fffce5;
+  color: #a44400;
+  border: solid 1px #eedd55;
+  padding: 10px;
+}

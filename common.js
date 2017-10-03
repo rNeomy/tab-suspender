@@ -2,8 +2,15 @@
 
 var app = {};
 var unsaved = {};
+var sessions = [];
 
-function notify (message) {
+const isFirefox = navigator.userAgent.indexOf('Firefox') !== -1;
+const contexts = ['page_action'];
+if (isFirefox) {
+  contexts.push('tab');
+}
+
+function notify(message) {
   chrome.notifications.create({
     title: 'Tab Suspender',
     type: 'basic',
@@ -12,7 +19,7 @@ function notify (message) {
   });
 }
 
-function tooltip (tab, title) {
+function tooltip(tab, title) {
   chrome.pageAction.setTitle({
     tabId: tab.id,
     title: 'Tab Suspender (Tab Unloader)\n\n' + title
@@ -33,50 +40,50 @@ chrome.commands.onCommand.addListener(command => {
 // contextMenu
 chrome.contextMenus.create({
   title: 'Suspend this tab',
-  contexts: ['page_action'],
-  onclick: () => app.emit('suspend-tab')
+  contexts,
+  onclick: (info, tab) => app.emit('suspend-tab', [tab])
 });
 chrome.contextMenus.create({
   title: 'Suspend this tab',
   contexts: ['page'],
-  onclick: () => app.emit('suspend-tab')
+  onclick: (info, tab) => app.emit('suspend-tab', [tab])
 });
 chrome.contextMenus.create({
   title: 'Unuspend this tab',
-  contexts: ['page_action'],
-  onclick: () => app.emit('unsuspend-tab')
+  contexts,
+  onclick: (info, tab) => app.emit('unsuspend-tab', [tab])
 });
 /*
 chrome.contextMenus.create({
   title: 'Don\'t suspend for now',
-  contexts: ['page_action'],
+  contexts,
   onclick: () => app.emit('dont-suspend')
 });
 chrome.contextMenus.create({
   title: 'Never suspend this domain',
-  contexts: ['page_action'],
+  contexts,
   onclick: () => app.emit('protect-host')
 });
 */
 chrome.contextMenus.create({
   title: 'Suspend all tabs',
-  contexts: ['page_action'],
+  contexts,
   onclick: () => app.emit('suspend-all')
 });
 chrome.contextMenus.create({
   title: 'Unsuspend this window',
-  contexts: ['page_action'],
+  contexts,
   onclick: () => app.emit('unsuspend-window')
 });
 chrome.contextMenus.create({
   title: 'Unsuspend all tabs',
-  contexts: ['page_action'],
+  contexts,
   onclick: () => app.emit('unsuspend-all')
 });
 chrome.contextMenus.create({
   title: 'Open tab in suspend mode',
   contexts: ['link'],
-  onclick: (i) => {
+  onclick: i => {
     let url = i.linkUrl;
     // bypass Google redirect
     if (url.startsWith('https://www.google') && url.indexOf('&url=') !== -1) {
@@ -87,8 +94,8 @@ chrome.contextMenus.create({
       encodeURIComponent(url) +
       '&url=' + encodeURIComponent(url),
       active: false
-    }, (tab) => {
-      let req = new XMLHttpRequest();
+    }, tab => {
+      const req = new XMLHttpRequest();
       req.open('GET', url);
       req.responseType = 'document';
       req.onload = () => {
@@ -108,9 +115,9 @@ chrome.contextMenus.create({
   }
 });
 
-function battery () {
+function battery() {
   if ('getBattery' in navigator) {
-    return navigator.getBattery().then(function (batt) {
+    return navigator.getBattery().then(function(batt) {
       return batt.dischargingTime !== Infinity;
     });
   }
@@ -119,7 +126,8 @@ function battery () {
   }
 }
 
-function suspend (tab, forced) {
+function suspend(tab, forced) {
+  console.log(tab)
   chrome.storage.local.get({
     online: false,
     pinned: false,
@@ -128,7 +136,7 @@ function suspend (tab, forced) {
     whitelist: '',
     tabs: 5,
     battery: false,
-  }, (prefs) => {
+  }, prefs => {
     if (!forced && prefs.online && !navigator.onLine) {
       return tooltip(tab, 'Skipped: browser is not connected to internet');
     }
@@ -141,7 +149,7 @@ function suspend (tab, forced) {
     if (!forced && prefs.unsaved && unsaved[tab.id] && Object.values(unsaved[tab.id]).reduce((p, c) => p || c, false)) {
       return tooltip(tab, 'Skipped: this tab has unsaved form data');
     }
-    let hostname = (new URL(tab.url)).hostname;
+    const hostname = (new URL(tab.url)).hostname;
     if (!forced && prefs.whitelist.split(', ').filter(u => u === hostname).length) {
       return tooltip(tab, 'Skipped: tab is in the white-list');
     }
@@ -156,7 +164,7 @@ function suspend (tab, forced) {
           return tooltip(tab, 'Skipped: device is connected to power');
         }
 
-        let url = './data/suspend/index.html?title=' +
+        const url = './data/suspend/index.html?title=' +
           encodeURIComponent(tab.title) +
           '&url=' + encodeURIComponent(tab.url) +
           '&favicon=' + encodeURIComponent(tab.favIconUrl);
@@ -172,13 +180,12 @@ function suspend (tab, forced) {
   });
 }
 // check skipped conditions
-(function (callback) {
+(function(callback) {
   // 1. prefs.tabs
   chrome.tabs.onCreated.addListener(callback);
   // 2. online listener
-  window.addEventListener('online',  callback);
-
-})(function () {
+  window.addEventListener('online', callback);
+})(function() {
   chrome.tabs.query({
     url: ['*://*/*']
   }, tabs => tabs.filter(tab => !tab.active).forEach(tab => chrome.tabs.sendMessage(tab.id, {
@@ -186,12 +193,15 @@ function suspend (tab, forced) {
   })));
 });
 
-app.on('suspend-tab', () => {
+app.on('suspend-tab', tabs => {
+  if (tabs) {
+    return tabs.forEach(tab => suspend(tab, true));
+  }
   chrome.tabs.query({
     active: true,
     currentWindow: true,
     url: ['*://*/*']
-  }, tabs => tabs.forEach((tab) => suspend(tab, true)));
+  }, tabs => tabs.forEach(tab => suspend(tab, true)));
 });
 
 app.on('dont-suspend', () => {
@@ -227,7 +237,12 @@ app.on('unsuspend-window', () => {
   });
 });
 
-app.on('unsuspend-tab', () => {
+app.on('unsuspend-tab', tabs => {
+  if (tabs) {
+    return tabs.forEach(tab => chrome.tabs.sendMessage(tab.id, {
+      cmd: 'unsuspend'
+    }));
+  }
   chrome.tabs.query({
     active: true,
     currentWindow: true
@@ -239,7 +254,7 @@ app.on('unsuspend-tab', () => {
 });
 
 app.on('open-options', () => chrome.runtime.openOptionsPage());
-app.on('open-faqs', (append) => {
+app.on('open-faqs', append => {
   chrome.tabs.create({
     url: 'http://add0n.com/tab-suspender.html' + (append ? '?' + append : '')
   });
@@ -252,7 +267,7 @@ app.on('protect-host', () => {
     url: ['*://*/*']
   }, tabs => {
     tabs.forEach(tab => {
-      let url = new URL(tab.url);
+      const url = new URL(tab.url);
       chrome.storage.local.get({
         whitelist: ''
       }, prefs => {
@@ -271,14 +286,21 @@ app.on('session-restore', () => {
     // url: chrome.runtime.getURL('data/suspend/index.html') + '?*'
   }, tabs => {
     const root = chrome.runtime.getURL('data/suspend/index.html');
-    const sessions = tabs.filter(t => t.url.startsWith(root)).map(tab => tab.url);
+    const sessions = tabs.filter(t => t.url.startsWith(root));
     if (chrome.extension.inIncognitoContext === false) {
-      chrome.storage.local.set({sessions});
+      chrome.storage.local.set({
+        sessions: sessions.map(t => ({
+          tab: t.id,
+          win: t.windowId,
+          title: t.title,
+          url: t.url
+        }))
+      });
     }
   });
 });
 
-chrome.runtime.onMessage.addListener((request, sender) => {
+chrome.runtime.onMessage.addListener((request, sender, response) => {
   if (request.cmd === 'app.emit') {
     app.emit(request.id, request.data);
   }
@@ -299,10 +321,13 @@ chrome.runtime.onMessage.addListener((request, sender) => {
   else if (request.cmd === 'tab-is-inactive') {
     suspend(sender.tab, false);
   }
+  else if (request.cmd === 'sessions') {
+    response(sessions);
+  }
 });
 
 // clear unused objects
-chrome.tabs.onRemoved.addListener((tabId) => {
+chrome.tabs.onRemoved.addListener(tabId => {
   delete unsaved[tabId];
   app.emit('session-restore');
 });
@@ -314,13 +339,34 @@ if (chrome.extension.inIncognitoContext === false) {
     }, prefs => {
       chrome.tabs.query({}, tabs => {
         const urls = tabs.map(tab => tab.url);
-        prefs.sessions.filter(url => urls.indexOf(url) === -1).forEach(url => chrome.tabs.create({
-          url,
-          active: false
-        }));
+        sessions = prefs.sessions.map(s => {
+          if (typeof s === 'string') {
+            return {
+              url: s
+            };
+          }
+          return s;
+        }).filter(o => urls.indexOf(o.url) === -1);
+        if (sessions.length) {
+          chrome.storage.local.get({
+            width: 700,
+            height: 500,
+            left: Math.round((screen.availWidth - 700) / 2),
+            top: Math.round((screen.availHeight - 500) / 2),
+          }, prefs => {
+            chrome.windows.create({
+              url: chrome.extension.getURL('data/restore/index.html'),
+              width: prefs.width,
+              height: prefs.height,
+              left: prefs.left,
+              top: prefs.top,
+              type: 'popup'
+            });
+          });
+        }
       });
     });
-  }, 2000);
+  }, 500);
 }
 
 // pageAction
@@ -329,7 +375,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 // idle
-chrome.idle.onStateChanged.addListener((state) => {
+chrome.idle.onStateChanged.addListener(state => {
   if (state === 'active') {
     // only suspend inactive tabs
     chrome.tabs.query({}, tabs => tabs.filter(tab => !tab.active).forEach(tab => chrome.tabs.sendMessage(tab.id, {
@@ -343,10 +389,10 @@ if (chrome.app && chrome.app.getDetails) {
     url: '*://*/*'
   }, tabs => {
     const contentScripts = chrome.app.getDetails().content_scripts;
-    for (let tab of tabs) {
+    for (const tab of tabs) {
       chrome.pageAction[tab.url.startsWith('http') || tab.url.startsWith('ftp') ? 'show' : 'hide'](tab.id);
       //
-      for (let cs of contentScripts) {
+      for (const cs of contentScripts) {
         chrome.tabs.executeScript(tab.id, {
           file: cs.js[0],
           runAt: cs.run_at,
@@ -370,8 +416,7 @@ chrome.bookmarks.onCreated.addListener((id, bookmark) => {
 
 // FAQs
 chrome.storage.local.get('version', prefs => {
-  let version = chrome.runtime.getManifest().version;
-  let isFirefox = navigator.userAgent.indexOf('Firefox') !== -1;
+  const version = chrome.runtime.getManifest().version;
   if (isFirefox ? !prefs.version : prefs.version !== version) {
     window.setTimeout(() => {
       chrome.storage.local.set({version}, () => {
@@ -383,7 +428,7 @@ chrome.storage.local.get('version', prefs => {
     }, 3000);
   }
 });
-(function () {
-  let {name, version} = chrome.runtime.getManifest();
+(function() {
+  const {name, version} = chrome.runtime.getManifest();
   chrome.runtime.setUninstallURL('http://add0n.com/feedback.html?name=' + name + '&version=' + version);
 })();

@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>Restore Suspended Tabs :: Tab Suspender</title>
+    <link rel="stylesheet" href="index.css">
+  </head>
+  <body vbox>
+    <div flex="1" id="sessions">
+      <template id="details">
+        <details open>
+          <summary></summary>
+          <table width="100%">
+            <colgroup>
+              <col width="20px"></col>
+              <col width="200px"></col>
+              <col></col>
+            </colgroup>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Title</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+        </details>
+      </template>
+      <template id="tr">
+        <tr>
+          <td><input type="checkbox" checked="true"></td>
+          <td></td>
+          <td></td>
+        </tr>
+      </template>
+    </div>
+    <div>
+      <p class="note">Closing this window clears session restore</p>
+    </div>
+    <div>
+      <input type="button" value="Select none" data-cmd="select-none">
+      <input type="button" value="Select all" data-cmd="select-all">
+      <input type="button" value="Load selected tabs" data-cmd="open">
+    </div>
+    <script src="index.js"></script>
+  </body>
+</html>
