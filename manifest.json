@@ -3,7 +3,7 @@
   "short_name": "itsuspender",
   "description": "Automatically suspend (hibernate) inactive tabs to free up system resources",
   "author": "Richard Neomy",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "manifest_version": 2,
   "permissions": [
     "storage",
@@ -12,6 +12,7 @@
     "notifications",
     "contextMenus",
     "*://*/*",
+    "chrome://favicon/*",
     "bookmarks"
   ],
   "page_action": {
@@ -65,6 +66,7 @@
       "description": "Unsuspend this window"
     }
   },
+  "incognito": "split",
   "applications": {
     "gecko": {
       "id": "{e225ac78-5e83-484b-a16b-b6ed0924212f}"
