@@ -98,7 +98,16 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-chrome.runtime.onMessage.addListener((request) => {
+document.addEventListener('keypress', ({key}) => {
+  if (key === ' ' || key === 'Escape' || key === 'Enter') {
+    chrome.runtime.sendMessage({
+      cmd: 'update-tab',
+      url: search.url
+    });
+  }
+});
+
+chrome.runtime.onMessage.addListener(request => {
   if (request.cmd === 'unsuspend') {
     chrome.runtime.sendMessage({
       cmd: 'update-tab',
@@ -110,7 +119,7 @@ chrome.runtime.onMessage.addListener((request) => {
     document.querySelector('h1').textContent = request.title;
     const params = Object.entries(Object.assign(search, {
       title: request.title
-    })).map(([key, value]) => key + '=' + value).join('&')
+    })).map(([key, value]) => key + '=' + value).join('&');
     window.history.pushState('', '', '/index.html?' + params);
   }
 });

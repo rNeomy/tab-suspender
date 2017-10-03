@@ -61,7 +61,7 @@ document.addEventListener('click', ({target}) => {
       }))).then(() => sessions.forEach(s => chrome.tabs.create({
         url: s.url,
         windowId: map[s.win],
-        pinned: Boolean(s.pinned)
+        pinned: s.pinned === 'true'
       })));
   }
 });
