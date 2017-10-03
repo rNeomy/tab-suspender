@@ -14,7 +14,8 @@ body {
   align-items: center;
 }
 body[data-mode=dark] {
-  background: #424242 url('background-dark.svg') center center no-repeat;
+  background-color: #424242;
+  background-image: url('background-dark.svg');
   color: #888;
 }
 h1 {
