@@ -1,5 +1,7 @@
 'use strict';
 
+const isFirefox = navigator.userAgent.indexOf('Firefox') !== -1;
+
 document.body.dataset.mode = localStorage.getItem('dark') === 'true' ? 'dark' : 'white';
 chrome.storage.onChanged.addListener(prefs => {
   if (prefs.dark) {
@@ -71,48 +73,43 @@ function setFavicon(favicon) {
   }
 })(new Image());
 
-document.addEventListener('click', () => {
-  if (history.length > 2) {
-    history.back();
-  }
-  else {
-    chrome.runtime.sendMessage({
-      cmd: 'update-tab',
-      url: search.url
-    });
-  }
-});
+document.addEventListener('mouseup', e => e.which === 1 && update());
+
+function update() {
+  chrome.storage.local.get({
+    restore: true
+  }, prefs => {
+    const len = isFirefox ? 1 : 2;
+    if (history.length > len && prefs.restore) {
+      history.back();
+    }
+    else {
+      chrome.runtime.sendMessage({
+        cmd: 'update-tab',
+        url: search.url
+      });
+    }
+  });
+}
+
 // reload on activate
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     chrome.storage.local.get({
       'focus': false
-    }, prefs => {
-      if (prefs.focus) {
-        chrome.runtime.sendMessage({
-          cmd: 'update-tab',
-          url: search.url
-        });
-      }
-    });
+    }, prefs => prefs.focus && update());
   }
 });
 
 document.addEventListener('keypress', ({key}) => {
   if (key === ' ' || key === 'Escape' || key === 'Enter') {
-    chrome.runtime.sendMessage({
-      cmd: 'update-tab',
-      url: search.url
-    });
+    update();
   }
 });
 
 chrome.runtime.onMessage.addListener(request => {
   if (request.cmd === 'unsuspend') {
-    chrome.runtime.sendMessage({
-      cmd: 'update-tab',
-      url: search.url
-    });
+    update();
   }
   else if (request.cmd === 'change-title') {
     document.title = request.title;
