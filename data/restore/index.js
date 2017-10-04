@@ -24,7 +24,8 @@ chrome.runtime.sendMessage({
         id: s.id,
         win: id,
         url: s.url,
-        pinned: s.pinned || false
+        pinned: s.pinned || false,
+        index: s.index || -1
       });
       parent.querySelector('tbody').appendChild(node);
     });
@@ -58,10 +59,16 @@ document.addEventListener('click', ({target}) => {
             resolve();
           }
         });
-      }))).then(() => sessions.forEach(s => chrome.tabs.create({
-        url: s.url,
-        windowId: map[s.win],
-        pinned: s.pinned === 'true'
-      })));
+      }))).then(() => sessions.forEach(s => {
+        const obj = {
+          url: s.url,
+          windowId: map[s.win],
+          pinned: s.pinned === 'true'
+        };
+        if (s.index && s.index !== '-1') {
+          obj.index = Number(s.index);
+        }
+        chrome.tabs.create(obj);
+      }));
   }
 });

@@ -310,7 +310,8 @@ app.on('session-restore', () => {
           win: t.windowId,
           title: t.title,
           url: t.url,
-          pinned: t.pinned
+          pinned: t.pinned,
+          index: t.index
         }))
       });
     }
