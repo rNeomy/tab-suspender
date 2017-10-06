@@ -3,9 +3,13 @@
 const isFirefox = navigator.userAgent.indexOf('Firefox') !== -1;
 
 document.body.dataset.mode = localStorage.getItem('dark') === 'true' ? 'dark' : 'white';
+// https://github.com/rNeomy/tab-suspender/issues/54
+chrome.storage.local.get({
+  dark: false
+}, prefs => document.body.dataset.mode = prefs.dark ? 'dark' : 'white');
 chrome.storage.onChanged.addListener(prefs => {
   if (prefs.dark) {
-    document.body.dataset.mode = localStorage.getItem('dark') === 'true' ? 'dark' : 'white';
+    document.body.dataset.mode = prefs.dark.newValue ? 'dark' : 'white';
   }
 });
 
