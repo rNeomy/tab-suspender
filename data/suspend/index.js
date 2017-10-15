@@ -57,7 +57,7 @@ function setFavicon(favicon) {
     setFavicon(canvas.toDataURL('image/ico'));
   };
   img.onerror = e => console.log(e);
-  if (search.favicon && search.favicon !== 'undefined') {
+  if (search.favicon && search.favicon !== 'undefined' && search.favicon.startsWith('http')) {
     img.src = decodeURIComponent(search.favicon);
   }
   else {
@@ -85,7 +85,9 @@ function update() {
   }, prefs => {
     const len = isFirefox ? 1 : 2;
     if (history.length > len && prefs.restore) {
-      history.back();
+      chrome.runtime.sendMessage({
+        cmd: 'request-session-restore'
+      }, () => history.back());
     }
     else {
       chrome.runtime.sendMessage({

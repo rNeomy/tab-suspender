@@ -1,8 +1,7 @@
 'use strict';
 
-document.addEventListener('click', e => {
-  let target = e.target;
-  let id = target.dataset.id;
+document.addEventListener('click', ({target}) => {
+  const id = target.dataset.id;
   if (id) {
     chrome.runtime.sendMessage({
       cmd: 'app.emit',

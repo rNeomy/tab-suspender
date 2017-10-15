@@ -13,10 +13,12 @@ chrome.runtime.sendMessage({
   const details = document.getElementById('details');
   const tr = document.getElementById('tr');
   const div = document.getElementById('sessions');
+  var jobs = 0;
   Object.keys(cache).forEach(id => {
     const parent = document.importNode(details.content, true);
     parent.querySelector('summary').textContent = 'Window ' + id;
     cache[id].forEach(s => {
+      jobs += 1;
       const node = document.importNode(tr.content, true);
       node.querySelector('td:nth-child(2)').textContent = s.title;
       node.querySelector('td:nth-child(3)').textContent = s.url;
@@ -30,6 +32,15 @@ chrome.runtime.sendMessage({
       parent.querySelector('tbody').appendChild(node);
     });
     div.appendChild(parent);
+  });
+  chrome.storage.local.get({
+    'startup-restore': true
+  }, prefs => {
+    if (prefs['startup-restore'] && jobs <= 20) {
+      document.querySelector('[data-cmd="select-all"]').click();
+      document.querySelector('[data-cmd="open"]').dataset.close = true;
+      document.querySelector('[data-cmd="open"]').click();
+    }
   });
 });
 
@@ -59,16 +70,23 @@ document.addEventListener('click', ({target}) => {
             resolve();
           }
         });
-      }))).then(() => sessions.forEach(s => {
-        const obj = {
-          url: s.url,
-          windowId: map[s.win],
-          pinned: s.pinned === 'true'
-        };
-        if (s.index && s.index !== '-1') {
-          obj.index = Number(s.index);
+      }))).then(() => {
+        sessions.forEach(s => {
+          const obj = {
+            url: s.url,
+            windowId: map[s.win],
+            pinned: s.pinned === 'true'
+          };
+          if (s.index && s.index !== '-1') {
+            obj.index = Number(s.index);
+          }
+          chrome.tabs.create(obj);
+        });
+        if (target.dataset.close === 'true') {
+          chrome.runtime.sendMessage({
+            cmd: 'close-me'
+          });
         }
-        chrome.tabs.create(obj);
-      }));
+      });
   }
 });

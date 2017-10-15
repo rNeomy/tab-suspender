@@ -88,13 +88,23 @@
     <input id="page" type="checkbox">
     Display "Suspend Tab" item on "Page" context menu (restart required)
   </label>
+  <label>
+    <input id="startup-restore" type="checkbox">
+    Automatically restore tabs on browser restart (session manager window will automatically restore tabs and will close itself [works only for less than 20 suspended tabs])
+  </label>
+  <label>
+    <input id="bookmarks" type="checkbox">
+    Fix URL of suspended bookmarked tabs (restart required)
+  </label>
   <p>
     <b>Whitelist:</b> (comma separated list of domains that do not go to hibernate)
     <textarea id="whitelist"></textarea>
   </p>
 
   <p>
-    <button id="save">Save</button><span id="status"></span>
+    <button id="recovery">Open Recovery</button>
+    <button id="save">Save</button>
+    <span id="status"></span>
   </p>
 
   <p>
