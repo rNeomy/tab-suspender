@@ -33,15 +33,6 @@ chrome.runtime.sendMessage({
     });
     div.appendChild(parent);
   });
-  chrome.storage.local.get({
-    'startup-restore': true
-  }, prefs => {
-    if (prefs['startup-restore'] && jobs <= 20) {
-      document.querySelector('[data-cmd="select-all"]').click();
-      document.querySelector('[data-cmd="open"]').dataset.close = true;
-      document.querySelector('[data-cmd="open"]').click();
-    }
-  });
 });
 
 document.addEventListener('click', ({target}) => {

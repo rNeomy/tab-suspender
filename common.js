@@ -7,7 +7,7 @@ var sessions = [];
 var prefs = {
   pageAction: true,
   page: true,
-  version: '',
+  version: null,
   width: 700,
   height: 500,
   left: null,
@@ -20,15 +20,10 @@ var prefs = {
   whitelist: '',
   tabs: 5,
   battery: false,
-  bookmarks: false
+  bookmarks: false,
+  native: true,
+  'startup-restore': true,
 };
-chrome.storage.local.get(prefs, ps => {
-  Object.assign(prefs, ps);
-  app.emit('prefs-ready');
-});
-chrome.storage.onChanged.addListener(ps => {
-  Object.keys(ps).forEach(key => prefs[key] = ps[key].newValue);
-});
 
 const isFirefox = navigator.userAgent.indexOf('Firefox') !== -1;
 const contexts = ['page_action'];
@@ -185,18 +180,26 @@ function suspend(tab, forced, level) {
       if (!forced && level !== 2 && prefs.battery && !batt) {
         return tooltip(tab, 'Skipped: device is connected to power');
       }
+      const discard = () => {
+        const url = '/data/suspend/index.html?title=' +
+          encodeURIComponent(tab.title) +
+          '&url=' + encodeURIComponent(tab.url) +
+          '&favicon=' + encodeURIComponent(tab.favIconUrl);
 
-      const url = './data/suspend/index.html?title=' +
-        encodeURIComponent(tab.title) +
-        '&url=' + encodeURIComponent(tab.url) +
-        '&favicon=' + encodeURIComponent(tab.favIconUrl);
+        chrome.tabs.update(tab.id, {
+          url
+        }, () => {
+          // Firefox issue
+          window.setTimeout(app.emit, 500, 'session-restore');
+        });
+      };
 
-      chrome.tabs.update(tab.id, {
-        url
-      }, () => {
-        // Firefox issue
-        window.setTimeout(app.emit, 500, 'session-restore');
-      });
+      if (chrome.tabs.discard && prefs.native) {
+        chrome.tabs.discard(tab.id, tab => tab.discarded ? '' : discard());
+      }
+      else {
+        discard();
+      }
     });
   });
 }
@@ -389,21 +392,58 @@ app.on('recovery', () => chrome.extension.inIncognitoContext === false && chrome
   }).filter(o => urls.indexOf(o.url) === -1);
 
   if (sessions.length) {
-    chrome.windows.create({
-      url: chrome.extension.getURL('data/restore/index.html'),
-      width: prefs.width,
-      height: prefs.height,
-      left: prefs.left || Math.round((screen.availWidth - 700) / 2),
-      top: prefs.top || Math.round((screen.availHeight - 500) / 2),
-      type: 'popup'
-    });
+    if (prefs['startup-restore'] && sessions.length <= 20) {
+      const map = {};
+      Promise.all(sessions.map(s => s.win).filter((id, i, l) => id && l.indexOf(id) === i)
+        .map(id => new Promise(resolve => {
+          chrome.windows.get(Number(id), () => {
+            if (chrome.runtime.lastError) {
+              chrome.windows.create({}, win => {
+                map[id] = win.id;
+                resolve();
+              });
+            }
+            else {
+              map[id] = Number(id);
+              resolve();
+            }
+          });
+        }))).then(() => sessions.forEach(s => {
+          const obj = {
+            url: s.url,
+            windowId: map[s.win],
+            pinned: s.pinned === 'true'
+          };
+          if (s.index && s.index !== '-1') {
+            obj.index = Number(s.index);
+          }
+          chrome.tabs.create(obj);
+        }));
+    }
+    else {
+      chrome.windows.create({
+        url: chrome.extension.getURL('data/restore/index.html'),
+        width: prefs.width,
+        height: prefs.height,
+        left: prefs.left || Math.round((screen.availWidth - 700) / 2),
+        top: prefs.top || Math.round((screen.availHeight - 500) / 2),
+        type: 'popup'
+      });
+    }
   }
 }));
 
 (callback => {
   chrome.runtime.onInstalled.addListener(callback);
   chrome.runtime.onStartup.addListener(callback);
-})(() => window.setTimeout(app.emit, 500, 'recovery'));
+})(() => {
+  if (prefs.ready) {
+    app.emit('recovery');
+  }
+  else {
+    app.on('prefs-ready', () => app.emit('recovery'));
+  }
+});
 
 // pageAction
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => chrome.pageAction[
@@ -456,7 +496,7 @@ app.on('prefs-ready', () => {
   }
 });
 
-// FAQs && Bu Reposts
+// FAQs && Bug Reposts
 app.on('prefs-ready', () => {
   const version = chrome.runtime.getManifest().version;
   if (isFirefox ? !prefs.version : prefs.version !== version) {
@@ -465,7 +505,7 @@ app.on('prefs-ready', () => {
       chrome.storage.local.set({version}, () => {
         chrome.tabs.create({
           url: 'http://add0n.com/tab-suspender.html?version=' + version +
-            '&type=' + (prefs.version ? ('upgrade&p=' + pversion) : 'install')
+            '&type=' + (pversion ? ('upgrade&p=' + pversion) : 'install')
         });
       });
     }, 3000);
@@ -475,3 +515,13 @@ app.on('prefs-ready', () => {
   const {name, version} = chrome.runtime.getManifest();
   chrome.runtime.setUninstallURL('http://add0n.com/feedback.html?name=' + name + '&version=' + version);
 }
+
+// preferences
+chrome.storage.local.get(prefs, ps => {
+  Object.assign(prefs, ps);
+  prefs.ready = true;
+  app.emit('prefs-ready');
+});
+chrome.storage.onChanged.addListener(ps => {
+  Object.keys(ps).forEach(key => prefs[key] = ps[key].newValue);
+});

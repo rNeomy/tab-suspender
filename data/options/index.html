@@ -7,6 +7,7 @@
       padding: 10px;
       font-family: "Helvetica Neue",Helvetica,sans-serif;
       font-size: 13px;
+      min-width: 500px;
     }
     label {
       display: block;
@@ -44,6 +45,10 @@
       <td><input id="tabs" type="number" min="1"></td>
     </tr>
   </table>
+  <label>
+    <input id="native" type="checkbox">
+    Use native method to suspend tabs (recommended) (only if available)
+  </label>
   <label>
     <input id="pinned" type="checkbox">
     Do not suspend pinned tabs

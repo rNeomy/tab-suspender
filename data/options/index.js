@@ -6,6 +6,7 @@ function restore() {
   chrome.storage.local.get({
     'timeout': 30,
     'tabs': 5,
+    'native': true,
     'pinned': false,
     'unsaved': true,
     'online': false,
@@ -31,6 +32,7 @@ function save() {
   const prefs = {
     'timeout': Math.max(document.getElementById('timeout').value, 1),
     'tabs': Math.max(document.getElementById('tabs').value, 1),
+    'native': document.getElementById('native').checked,
     'pinned': document.getElementById('pinned').checked,
     'unsaved': document.getElementById('unsaved').checked,
     'online': document.getElementById('online').checked,
