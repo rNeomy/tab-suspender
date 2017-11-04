@@ -3,7 +3,7 @@
   "short_name": "itsuspender",
   "description": "Automatically suspend (hibernate) inactive tabs to free up system resources",
   "author": "Richard Neomy",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "manifest_version": 2,
   "permissions": [
     "storage",

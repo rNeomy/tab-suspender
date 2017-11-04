@@ -3,6 +3,7 @@
 var app = {};
 var unsaved = {};
 var sessions = [];
+var isOpera = navigator.userAgent.indexOf('OPR') !== -1;
 
 var prefs = {
   pageAction: true,
@@ -193,9 +194,13 @@ function suspend(tab, forced, level) {
           window.setTimeout(app.emit, 500, 'session-restore');
         });
       };
-
       if (chrome.tabs.discard && prefs.native) {
-        chrome.tabs.discard(tab.id, tab => tab.discarded ? '' : discard());
+        if (isOpera) {
+          discard();
+        }
+        else {
+          chrome.tabs.discard(tab.id, tab => tab.discarded ? '' : discard());
+        }
       }
       else {
         discard();
@@ -412,7 +417,8 @@ app.on('recovery', () => chrome.extension.inIncognitoContext === false && chrome
           const obj = {
             url: s.url,
             windowId: map[s.win],
-            pinned: s.pinned === 'true'
+            pinned: s.pinned === 'true',
+            active: false
           };
           if (s.index && s.index !== '-1') {
             obj.index = Number(s.index);
