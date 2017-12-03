@@ -56,7 +56,7 @@
       "description": "Suspend this tab"
     },
     "unsuspend-tab": {
-      "description": "Unuspend this tab"
+      "description": "Unsuspend this tab"
     },
     "suspend-all": {
       "description": "Suspend all tabs"

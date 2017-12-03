@@ -77,7 +77,7 @@ app.on('prefs-ready', () => {
   }
 });
 chrome.contextMenus.create({
-  title: 'Unuspend this tab',
+  title: 'Unsuspend this tab',
   contexts,
   onclick: (info, tab) => app.emit('unsuspend-tab', [tab])
 });
