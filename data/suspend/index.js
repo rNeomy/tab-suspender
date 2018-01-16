@@ -1,6 +1,7 @@
 'use strict';
 
 const isFirefox = navigator.userAgent.indexOf('Firefox') !== -1;
+const reloadKeys = ['Enter', ' ', 'Escape', 'F5']
 
 document.body.dataset.mode = localStorage.getItem('dark') === 'true' ? 'dark' : 'white';
 // https://github.com/rNeomy/tab-suspender/issues/54
@@ -108,7 +109,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 document.addEventListener('keypress', ({key}) => {
-  if (key === ' ' || key === 'Escape' || key === 'Enter') {
+  if(reloadKeys.indexOf(key) > -1){
     update();
   }
 });
